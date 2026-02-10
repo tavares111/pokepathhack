@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Base64 JSON Gold Editor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    textarea,
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    button {
+      padding: 10px 16px;
+      margin-right: 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    button.primary {
+      background-color: #007bff;
+      color: #ffffff;
+    }
+
+    button.secondary {
+      background-color: #28a745;
+      color: #ffffff;
+    }
+
+    button.gray {
+      background-color: #6c757d;
+      color: #ffffff;
+    }
+
+    .error {
+      color: #dc3545;
+      margin-bottom: 16px;
+    }
+
+    .success {
+      color: #28a745;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>PokePath gold editor</h1>
+
+    <label for="base64Input">Save file</label>
+    <textarea id="base64Input" placeholder="Paste your Base64 encoded JSON here"></textarea>
+
+    <button class="primary" onclick="decodeBase64()">Decode</button>
+
+    <div id="message"></div>
+
+    <label for="goldInput">Player Gold</label>
+    <input
+      type="number"
+      id="goldInput"
+      placeholder="Gold value"
+      disabled
+    />
+
+    <button class="secondary" onclick="encodeBase64()" disabled id="encodeButton">
+      Generate new save file
+    </button>
+
+    <label for="base64Output">New save file</label>
+    <textarea id="base64Output" readonly></textarea>
+
+    <button class="gray" onclick="copyToClipboard()" disabled id="copyButton">
+      Copy to Clipboard
+    </button>
+
+    <button class="gray" onclick="downloadFile()" disabled id="downloadButton">
+      Download as .txt
+    </button>
+  </div>
+
+  <script>
+    let parsedJson = null;
+
+    function showMessage(text, type = "error") {
+      const message = document.getElementById("message");
+      message.className = type;
+      message.textContent = text;
+    }
+
+    function decodeBase64() {
+      try {
+        const base64Text = document.getElementById("base64Input").value.trim();
+        if (!base64Text) {
+          throw new Error("Base64 input is empty.");
+        }
+
+        const decodedText = atob(base64Text);
+        parsedJson = JSON.parse(decodedText);
+        console.log("Parsed JSON:", parsedJson);
+        const gold = parsedJson?.player?.gold;
+        if (gold === undefined) {
+          throw new Error("Path save.player.gold was not found.");
+        }
+
+        document.getElementById("goldInput").value = gold;
+        document.getElementById("goldInput").disabled = false;
+        document.getElementById("encodeButton").disabled = false;
+
+        showMessage("JSON decoded successfully.", "success");
+      } catch (error) {
+        showMessage(error.message, "error");
+      }
+    }
+
+    function encodeBase64() {
+      try {
+        const goldValue = Number(document.getElementById("goldInput").value);
+        if (Number.isNaN(goldValue)) {
+          throw new Error("Invalid gold value.");
+        }
+
+        parsedJson.player.gold = goldValue;
+
+        const jsonString = JSON.stringify(parsedJson);
+        const encoded = btoa(jsonString);
+
+        document.getElementById("base64Output").value = encoded;
+        document.getElementById("copyButton").disabled = false;
+        document.getElementById("downloadButton").disabled = false;
+
+        showMessage("Base64 generated successfully.", "success");
+      } catch (error) {
+        showMessage(error.message, "error");
+      }
+    }
+
+    function copyToClipboard() {
+      const output = document.getElementById("base64Output");
+      output.select();
+      output.setSelectionRange(0, output.value.length);
+      navigator.clipboard.writeText(output.value);
+      showMessage("Copied to clipboard.", "success");
+    }
+
+    function downloadFile() {
+      const content = document.getElementById("base64Output").value;
+      const blob = new Blob([content], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "save_base64.txt";
+      a.click();
+
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
